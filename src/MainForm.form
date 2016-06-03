@@ -25,7 +25,7 @@
               <text value="新建"/>
             </properties>
           </component>
-          <component id="70f9c" class="javax.swing.JButton" binding="btnMarkdown">
+          <component id="70f9c" class="javax.swing.JToggleButton" binding="btnMarkdown">
             <constraints/>
             <properties>
               <text value="Markdown"/>

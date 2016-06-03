@@ -1,18 +1,17 @@
 package logic;
 
+import ui.Tabs;
 import ui.Tab;
-import ui.TabContent;
 
-import java.awt.*;
 import java.io.*;
-import java.net.MalformedURLException;
+import java.util.*;
 
 /**
  * Created by ZyL on 2016/6/3.
  */
 public class LocalStorage {
 
-    public static void init(Tab tab){
+    public static void init(Tabs tab) {
         File f = new File(getStorageDir());
         int maxIndex = 0;
         File[] files = f.listFiles(new FilenameFilter() {
@@ -24,40 +23,67 @@ public class LocalStorage {
                 return false;
             }
         });
-        for(File file : files){
+        for (File file : files) {
             String name = file.getName();
-            if(name.length() >= 6){
+            if (name.length() >= 6) {
                 String indexStr = name.substring(name.length() - 6, name.length() - 5);
-                if(indexStr.matches("\\d+")){
+                if (indexStr.matches("\\d+")) {
                     int index = Integer.parseInt(indexStr);
-                    if(index > maxIndex){
+                    if (index > maxIndex) {
                         maxIndex = index;
-                        IndexManager.setIndex(maxIndex + 1);
+                        IndexManager.setIndex(maxIndex);
                     }
                 }
             }
-            try {
-                TabContent tabContent = new TabContent(file.toURL(), file.getName().replaceAll("\\..+", ""));
-                tab.add(tabContent);
-                tab.setSelectedComponent(tabContent);
-            } catch (MalformedURLException e) {
-                e.printStackTrace();
+            Tab tabContent = new Tab(file, file.getName().replaceAll("\\..+", ""));
+            tab.add(tabContent);
+            tab.setSelectedComponent(tabContent);
+        }
+        String selectedIndex = getMeta("selectedIndex");
+        if (selectedIndex != null) {
+            if (Integer.parseInt(selectedIndex) < tab.getTabCount()) {
+                tab.setSelectedIndex(Integer.parseInt(selectedIndex));
             }
         }
     }
 
-    public static String load(String tabName){
+    public static String getMeta(String key) {
+        Properties props = new Properties();
+        try {
+            props.load(new FileInputStream(getStorageDir() + "/meta"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return props.getProperty(key);
+    }
+
+    public static void saveMeta(Map<String, Object> map) {
+        Properties props = new Properties();
+        Set<String> keySet = map.keySet();
+        Iterator<String> iterator = keySet.iterator();
+        while (iterator.hasNext()) {
+            String next = iterator.next();
+            props.put(next, map.get(next));
+        }
+        try {
+            props.store(new FileOutputStream(getStorageDir() + "/meta"), new Date().toString());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static String load(String tabName) {
         File f = new File(getStorageDir() + "/" + tabName + ".html");
         return load(f);
     }
 
-    public static String load(File f){
+    public static String load(File f) {
         BufferedReader br = null;
         String str = "";
         try {
-            br = new BufferedReader(new InputStreamReader(new FileInputStream(f)));
+            br = new BufferedReader(new InputStreamReader(new FileInputStream(f), "utf-8"));
             String tmp = null;
-            while((str = br.readLine()) != null){
+            while ((tmp = br.readLine()) != null) {
                 str += tmp;
             }
         } catch (FileNotFoundException e) {
@@ -65,7 +91,7 @@ public class LocalStorage {
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
-            if(br != null){
+            if (br != null) {
                 try {
                     br.close();
                 } catch (IOException e) {
@@ -76,21 +102,23 @@ public class LocalStorage {
         return str;
     }
 
-    public static void save(Tab tab){
+    public static void save(Tabs tab) {
         int count = tab.getTabCount();
-        for(int i = 0; i < count;i ++){
-            TabContent content = (TabContent) tab.getComponentAt(i);
-            save(content.getName() + ".html", content.getEditorPane().getText());
+        for (int i = 0; i < count; i++) {
+            Tab content = (Tab) tab.getComponentAt(i);
+            String text = content.getEditorPane().getText();
+            save(content.getName() + ".html", text);
         }
     }
 
-    public static String getStorageDir(){
+    public static String getStorageDir() {
         Object object = new Object();
         String dir = object.getClass().getResource("/files").getPath();
         return dir;
     }
 
     public static String saveMd(String tabName, String content) {
+        System.out.println(tabName);
         save(tabName + ".md", content);
         return save(tabName + ".html", Markdown.convert(content));
     }

@@ -1,16 +1,19 @@
 import logic.LocalStorage;
-import logic.Markdown;
+import ui.Tabs;
 import ui.Tab;
-import ui.TabContent;
 import ui.TabTitle;
 
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Created by ZyL on 2016/6/2.
@@ -19,12 +22,12 @@ public class MainForm {
     private JPanel mainPanel;
     private JButton btnNew;
     private JPanel tabPanel;
-    private JButton btnMarkdown;
-    private Tab tab;
+    private JToggleButton btnMarkdown;
+    private Tabs tab;
 
 
     public MainForm() {
-        tab = new Tab();
+        tab = new Tabs();
         tabPanel.add(tab);
         initToolBar();
         LocalStorage.init(tab);
@@ -34,7 +37,7 @@ public class MainForm {
         btnNew.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                TabContent pad = new TabContent();
+                Tab pad = new Tab();
                 TabTitle tabTitle = new TabTitle(tab, pad.getName());
                 tab.add(pad);
                 tab.setSelectedComponent(pad);
@@ -45,7 +48,7 @@ public class MainForm {
         btnMarkdown.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                TabContent tabContent = (TabContent) tab.getSelectedComponent();
+                Tab tabContent = (Tab) tab.getSelectedComponent();
                 JEditorPane editorPane = tabContent.getEditorPane();
                 String text = editorPane.getText();
                 String tabTitle = tab.getTitleAt(tab.getSelectedIndex());
@@ -64,6 +67,17 @@ public class MainForm {
                 }
             }
         });
+        tab.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                Tab tabItem = (Tab) tab.getSelectedComponent();
+                if(tabItem.isMarkdown()){
+                    btnMarkdown.setSelected(true);
+                }else{
+                    btnMarkdown.setSelected(false);
+                }
+            }
+        });
     }
 
     public static void main(String[] args) throws ClassNotFoundException, UnsupportedLookAndFeelException, InstantiationException, IllegalAccessException {
@@ -78,6 +92,9 @@ public class MainForm {
             public void windowClosing(WindowEvent e) {
                 frame.setVisible(false);
                 LocalStorage.save(mainForm.tab);
+                Map<String, Object> map = new HashMap<String, Object>();
+                map.put("selectedIndex", mainForm.tab.getSelectedIndex() + "");
+                LocalStorage.saveMeta(map);
                 System.exit(0);
             }
         });
@@ -85,7 +102,7 @@ public class MainForm {
         frame.setSize(635, 650);
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
-        TabContent tabContent = (TabContent) mainForm.tab.getComponentAt(mainForm.tab.getTabCount() - 1);
+        Tab tabContent = (Tab) mainForm.tab.getComponentAt(mainForm.tab.getTabCount() - 1);
         tabContent.getEditorPane().requestFocus();
     }
 }
